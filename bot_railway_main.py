@@ -3,20 +3,20 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 from aiogram.dispatcher.filters import CommandStart
 import logging
 import os
+
 from fastapi import FastAPI
 from aiogram.types import Update
-from aiogram.dispatcher.webhook import get_webhook_handler
-import uvicorn
 
-# === Налаштування логування та токена ===
 API_TOKEN = os.getenv("API_TOKEN")
-logging.basicConfig(level=logging.INFO)
+DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_URL = f"https://{DOMAIN}{WEBHOOK_PATH}"
 
-# === Ініціалізація бота ===
+logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# === Reply клавіатура (під полем вводу) ===
+# Reply клавіатура
 reply_keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
 reply_keyboard.row(
     KeyboardButton("Як нас знайти?"),
@@ -27,7 +27,7 @@ reply_keyboard.row(
     KeyboardButton("?")
 )
 
-# === Inline клавіатура (під вітальним повідомленням) ===
+# Inline клавіатура
 welcome_keyboard = InlineKeyboardMarkup(row_width=1)
 welcome_keyboard.add(
     InlineKeyboardButton("📍 Навігація", url="https://t.me/MyAlpaka")
@@ -37,7 +37,6 @@ welcome_keyboard.row(
     InlineKeyboardButton("📰 Новини", url="https://t.me/MyAlpaka/8")
 )
 
-# === Обробка команди /start ===
 @dp.message_handler(CommandStart())
 async def send_welcome(message: types.Message):
     username = message.from_user.username or "друже"
@@ -53,11 +52,8 @@ async def send_welcome(message: types.Message):
     await message.answer(welcome_text, reply_markup=welcome_keyboard)
     await message.answer("Обери опцію нижче ⬇️", reply_markup=reply_keyboard)
 
-# === FastAPI додаток ===
+# FastAPI app
 app = FastAPI()
-
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"https://alpaka-bot-production.up.railway.app{WEBHOOK_PATH}"
 
 @app.on_event("startup")
 async def on_startup():
@@ -67,6 +63,3 @@ async def on_startup():
 async def bot_webhook(update: dict):
     telegram_update = Update(**update)
     await dp.process_update(telegram_update)
-
-if __name__ == "__main__":
-    uvicorn.run("bot_railway_main:app", host="0.0.0.0", port=10000)
